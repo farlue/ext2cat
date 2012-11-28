@@ -43,7 +43,8 @@ int main(int argc, char ** argv) {
 
     write(1, buf, bytes_read);
     if (bytes_read < size) {
-        printf("cat: file uses indirect blocks. output was truncated!\n");
+        printf("%s: file uses indirect blocks. output was truncated!\n",
+               argv[0]);
     }
 
     return 0;

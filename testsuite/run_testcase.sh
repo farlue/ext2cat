@@ -2,7 +2,9 @@
 
 
 ORIG_FILES="Makefile
-            reference.o
+            reference-Linux-i686.o
+            reference-Linux-x86_64.o
+            reference-Darwin-x86_64.o
             include
             lib/mmapfs.c
             lib/ext2_access_ref.c
@@ -10,13 +12,12 @@ ORIG_FILES="Makefile
 TARGZ=$1
 TC_DIR=`pwd`
 TMP=`mktemp -d /tmp/cs343.tests.XXXXXX`
-OUTPUT=`mktemp -d /tmp/cs343.tests.XXXXXX`
-chmod go-rwx ${TMP} ${OUTPUT} || exit 1
+chmod go-rwx ${TMP} || exit 1
 
 
 function cleanUp()
 {
-	rm -Rf ${TMP} ${OUTPUT}
+	rm -Rf ${TMP}
 }
 
 
@@ -85,7 +86,6 @@ echo "TESTING"
 TEST_FILES="/README.txt
             /photos/corn.jpg
             /photos/cows.jpg
-            /code/ext2_headers/ext2fs.h
             /code/ext2_headers/ext2_types.h
             /code/python/ouroboros.py
             /code/haskell/qsort.hs"
@@ -97,7 +97,8 @@ for i in $TEST_FILES; do
     SUMFILE=`echo $i | sed "s/\//_/g"`
     ${TMP}/ext2cat ${TMP}/eecs343.img $i | md5sum > ${TMP}/${SUMFILE} || { cleanUp; exit 1; }
     ${TMP}/ext2cat_ref ${TMP}/eecs343.img $i | md5sum > ${TMP}/${SUMFILE}_ref
-    if [ $(diff ${TMP}/${SUMFILE} ${TMP}/${SUMFILE}_ref) ]; then
+    diff ${TMP}/${SUMFILE} ${TMP}/${SUMFILE}_ref >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
         echo "Failed!"
         continue
     fi
@@ -127,6 +128,10 @@ if [ "$EC_SUM" == "eb5826a89dc453409ca76560979699bb" ]; then
 fi
 
 # Final grade report.
+FILES_PENALTY=0
+if [ $FILES_RETRIEVED -ne $NUM_FILES ]; then
+    FILES_PENALTY=100
+fi
 REFS_PENALTY=$(($NUM_REFS_LEFT * (100 / $NUM_REF_FUNCS)))
 WARNINGS_PENALTY=$((2 * $WARNINGS))
 if [[ $WARNINGS_PENALTY > 16 ]]; then
@@ -137,8 +142,11 @@ if [ "$EC_SUCCESS" ]; then
 else
     EC_BONUS=0
 fi
-GRADE=$((100 - REFS_PENALTY - WARNINGS_PENALTY + EC_BONUS))
+GRADE=$((100 - FILES_PENALTY - REFS_PENALTY - WARNINGS_PENALTY + EC_BONUS))
 
+if [ $FILES_PENALTY -ne 0 ]; then
+    echo "    Your code could not extract all tested files. (-$FILES_PENALTY points)"
+fi
 echo -n "    You eliminated $NUM_REFS_ELMINATED of $NUM_REF_FUNCS reference functions."
 if [ $REFS_PENALTY != 0 ]; then
     echo " (-$REFS_PENALTY points)"

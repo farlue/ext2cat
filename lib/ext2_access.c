@@ -17,23 +17,33 @@
 
 // Return a pointer to the primary superblock of a filesystem.
 struct ext2_super_block * get_super_block(void * fs) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_super_block(fs);
+  // The super block is at the super block offset.
+  return fs + SUPERBLOCK_OFFSET;
 }
 
 
 // Return the block size for a filesystem.
 __u32 get_block_size(void * fs) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_block_size(fs);
+  // Use the block size metadata within the super block.
+  return EXT2_BLOCK_SIZE(get_super_block(fs));
 }
 
 
 // Return a pointer to a block given its number.
 // get_block(fs, 0) == fs;
 void * get_block(void * fs, __u32 block_num) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_block(fs, block_num);
+  // Return fs if block_num is 0.
+  if (block_num == 0) {
+    return fs;
+  }
+  // Return super block address if block_num is 1.
+  if (block_num == 1) {
+    return (void*)get_super_block(fs);
+  }
+  // Get the pointer to block 2, which is right after the super block.
+  void * block_2_ptr = (void*)get_super_block(fs) + SUPERBLOCK_SIZE;
+  // Calculate the address of the given block_num.
+  return block_2_ptr + (block_num - 2) * get_block_size(fs);
 }
 
 
@@ -41,8 +51,12 @@ void * get_block(void * fs, __u32 block_num) {
 // ext2 filesystems will have several of these, but, for simplicity, we will
 // assume there is only one.
 struct ext2_group_desc * get_block_group(void * fs, __u32 block_group_num) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_block_group(fs, block_group_num);
+  // return the pointer to block 2, right after the super block.
+  if (block_group_num == 0) {
+    return (void*)get_super_block(fs) + SUPERBLOCK_SIZE;
+  } else {
+    return NULL;
+  }
 }
 
 
@@ -50,8 +64,12 @@ struct ext2_group_desc * get_block_group(void * fs, __u32 block_group_num) {
 // would require finding the correct block group, but you may assume it's in the
 // first one.
 struct ext2_inode * get_inode(void * fs, __u32 inode_num) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_inode(fs, inode_num);
+  // Get the address of the block group descriptor.
+  struct ext2_group_desc * group_desc_ptr = get_block_group(fs, 0);
+  // Get the address of the inode table.
+  void * inode_tbl_ptr = get_block(fs, group_desc_ptr->bg_inode_table);
+  // Calculate the address of the inode.
+  return inode_tbl_ptr + (inode_num - 1) * EXT2_INODE_SIZE(get_super_block(fs));
 }
 
 

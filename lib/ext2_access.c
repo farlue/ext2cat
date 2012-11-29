@@ -118,10 +118,28 @@ struct ext2_inode * get_root_dir(void * fs) {
 // that file inside that directory, or 0 if it doesn't exist there.
 // 
 // name should be a single component: "foo.txt", not "/files/foo.txt".
-__u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, 
-        char * name) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_inode_from_dir(fs, dir, name);
+__u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, char * name) 
+{   
+  void *block = get_block(fs, dir->i_block[0]);
+  struct ext2_dir_entry *directory = (struct ext2_dir_entry*)block;
+  int i, equal;
+  
+  while(directory->inode != 0)
+  {
+     equal = 1;
+     for(i=0; directory->name[i]>31;i++)
+     {
+       if(name[i]!=directory->name[i])
+         equal = 0;
+     }
+     if(equal)
+       return directory->inode;
+        
+     directory = (struct ext2_dir_entry*)((long int)directory + directory->rec_len);
+  }
+  
+  return 0;
+   
 }
 
 

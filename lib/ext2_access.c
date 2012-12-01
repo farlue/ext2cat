@@ -120,14 +120,16 @@ struct ext2_inode * get_root_dir(void * fs) {
 // name should be a single component: "foo.txt", not "/files/foo.txt".
 __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, char * name) 
 {   
+
   void *block = get_block(fs, dir->i_block[0]);
-  struct ext2_dir_entry *directory = (struct ext2_dir_entry*)block;
+  struct ext2_dir_entry_2 *directory = (struct ext2_dir_entry_2*)block;
   int i, equal;
   
   while(directory->inode != 0)
   {
      equal = 1;
-     for(i=0; directory->name[i]>31;i++)
+//     for(i=0; directory->name[i]>31;i++)
+     for(i=0; i < directory->name_len; i++)
      {
        if(name[i]!=directory->name[i])
          equal = 0;
@@ -135,18 +137,31 @@ __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, char * name)
      if(equal)
        return directory->inode;
         
-     directory = (struct ext2_dir_entry*)((long int)directory + directory->rec_len);
+     directory = (struct ext2_dir_entry_2*)((void*)directory + directory->rec_len);
   }
-  
   return 0;
-   
+
 }
 
 
 // Find the inode number for a file by its full path.
 // This is the functionality that ext2cat ultimately needs.
 __u32 get_inode_by_path(void * fs, char * path) {
+
+		char** dirs = split_path(path);
+		struct ext2_inode* tmpINO = get_root_dir(fs);
+		struct ext2_dir_entry_2* dir = (struct ext2_dir_entry_2*)get_block(fs, tmpINO->i_block[0]);
+		__u32 inodeNum = 0;
+		unsigned i = 0;
+		while(dir->file_type == EXT2_FT_DIR)
+		{
+			inodeNum = get_inode_from_dir(fs, tmpINO, dirs[i]);
+			tmpINO = get_inode(fs, inodeNum);	
+			dir = (struct ext2_dir_entry_2*)get_block(fs, tmpINO->i_block[0]);
+			++i; 
+		}
+		return inodeNum;
     // FIXME: Uses reference implementation.
-    return _ref_get_inode_by_path(fs, path);
+//    return _ref_get_inode_by_path(fs, path);
 }
 

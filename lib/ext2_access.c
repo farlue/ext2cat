@@ -148,20 +148,22 @@ __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, char * name)
 // This is the functionality that ext2cat ultimately needs.
 __u32 get_inode_by_path(void * fs, char * path) {
 
+		// chuck the full path into pieces
 		char** dirs = split_path(path);
-		struct ext2_inode* tmpINO = get_root_dir(fs);
-		struct ext2_dir_entry_2* dir = (struct ext2_dir_entry_2*)get_block(fs, tmpINO->i_block[0]);
+		// get the inode ptr to the root dir
+		struct ext2_inode* tmpInodePtr = get_root_dir(fs);
+		struct ext2_dir_entry_2* dir = (struct ext2_dir_entry_2*)get_block(fs, tmpInodePtr->i_block[0]);
 		__u32 inodeNum = 0;
 		unsigned i = 0;
+		// go to next level directory
 		while(dir->file_type == EXT2_FT_DIR)
 		{
-			inodeNum = get_inode_from_dir(fs, tmpINO, dirs[i]);
-			tmpINO = get_inode(fs, inodeNum);	
-			dir = (struct ext2_dir_entry_2*)get_block(fs, tmpINO->i_block[0]);
+			inodeNum = get_inode_from_dir(fs, tmpInodePtr, dirs[i]);
+			tmpInodePtr = get_inode(fs, inodeNum);	
+			dir = (struct ext2_dir_entry_2*)get_block(fs, tmpInodePtr->i_block[0]);
 			++i; 
 		}
+		// until it is not a dir, return the inode number
 		return inodeNum;
-    // FIXME: Uses reference implementation.
-//    return _ref_get_inode_by_path(fs, path);
 }
 
